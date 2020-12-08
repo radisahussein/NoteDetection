@@ -93,3 +93,31 @@ stream = pyaudio.PyAudio().open(format=pyaudio.paInt16,
 #Starting Stream
 stream.start_stream()
 
+
+#Hanning Window Function
+window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
+
+print('Sampling Frequency:',samplingFrequency, "Hz\n")
+print('Max Resolution:', frequencyStep,"Hz\n")
+
+
+while stream.is_active():
+
+    # Shifting the data down and the new data in
+    temp[:-sampleFrameSize] = temp[sampleFrameSize:]
+    temp[-sampleFrameSize:] = np.frombuffer(stream.read(sampleFrameSize), np.int16)
+
+    # Run the FFT on the windowed buffer
+    fft = np.fft.rfft(temp * window)
+
+    # Obtain frequency
+    freq = (np.abs(fft[minIndex:maxIndex]).argmax() + minIndex) * frequencyStep
+
+    #Get the note number and nearest note
+    n = frequencyToNumber(freq)
+    n0 = int(round(n))
+
+    numberOfFrames += 1
+
+    if numberOfFrames >= framesPerFFT:
+        print ('Frequency: {:7.2f} Hz   |   Note: {:>3s} {:+.2f}'.format(freq,getNoteName(n0), n-n0))
