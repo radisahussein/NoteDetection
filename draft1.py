@@ -97,7 +97,7 @@ stream.start_stream()
 #Hanning Window Function
 window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
 
-print('Sampling Frequency:',samplingFrequency, "Hz\n")
+print('Sampling Frequency:',samplingFrequency, "Hz")
 print('Max Resolution:', frequencyStep,"Hz\n")
 
 
