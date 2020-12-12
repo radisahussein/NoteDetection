@@ -76,48 +76,55 @@ def noteToFFT(n):
 
     return numberToFrequency(n)/frequencyStep
 
-# To get the min and max index in FFT of the notes
-minIndex = max(0,int(np.floor(noteToFFT(lowestNote-1))))
-maxIndex = min(samplesPerFFT, int(np.ceil(noteToFFT(highestNote+1))))
 
-# Allocating space for FFT process
-temp = np.zeros(samplesPerFFT, dtype=np.float32)
-numberOfFrames = 0
+#Function for live detection, stops whenever the user wants
+def liveDetection(lowestNote, highestNote, samplesPerFFT, samplingFrequency, sampleFrameSize, frequencyStep):
 
-# Initializing pyaudio
-stream = pyaudio.PyAudio().open(format=pyaudio.paInt16,
-                                channels=1,rate=samplingFrequency,
-                                input=True,
-                                frames_per_buffer=sampleFrameSize)
+    # To get the min and max index in FFT of the notes
+    minIndex = max(0,int(np.floor(noteToFFT(lowestNote-1))))
+    maxIndex = min(samplesPerFFT, int(np.ceil(noteToFFT(highestNote+1))))
 
-#Starting Stream
-stream.start_stream()
+    # Allocating space for FFT process
+    temp = np.zeros(samplesPerFFT, dtype=np.float32)
+    numberOfFrames = 0
 
+    # Initializing pyaudio
+    stream = pyaudio.PyAudio().open(format=pyaudio.paInt16,
+                                    channels=1,rate=samplingFrequency,
+                                    input=True,
+                                    frames_per_buffer=sampleFrameSize)
 
-#Hanning Window Function
-window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
-
-print('Sampling Frequency:',samplingFrequency, "Hz")
-print('Max Resolution:', frequencyStep,"Hz\n")
+    #Starting Stream
+    stream.start_stream()
 
 
-while stream.is_active():
+    #Hanning Window Function
+    window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
 
-    # Shifting the data down and the new data in
-    temp[:-sampleFrameSize] = temp[sampleFrameSize:]
-    temp[-sampleFrameSize:] = np.frombuffer(stream.read(sampleFrameSize), np.int16)
+    print('Sampling Frequency:',samplingFrequency, "Hz")
+    print('Max Resolution:', frequencyStep,"Hz\n")
 
-    # Run the FFT on the windowed buffer
-    fft = np.fft.rfft(temp * window)
 
-    # Obtain frequency
-    freq = (np.abs(fft[minIndex:maxIndex]).argmax() + minIndex) * frequencyStep
+    while stream.is_active():
 
-    #Get the note number and nearest note
-    n = frequencyToNumber(freq)
-    n0 = int(round(n))
+        # Shifting the data down and the new data in
+        temp[:-sampleFrameSize] = temp[sampleFrameSize:]
+        temp[-sampleFrameSize:] = np.frombuffer(stream.read(sampleFrameSize), np.int16)
 
-    numberOfFrames += 1
+        # Run the FFT on the windowed buffer
+        fft = np.fft.rfft(temp * window)
 
-    if numberOfFrames >= framesPerFFT:
-        print ('Frequency: {:7.2f} Hz   |   Note: {:>3s} {:+.2f}'.format(freq,getNoteName(n0), n-n0))
+        # Obtain frequency
+        freq = (np.abs(fft[minIndex:maxIndex]).argmax() + minIndex) * frequencyStep
+
+        #Get the note number and nearest note
+        n = frequencyToNumber(freq)
+        n0 = int(round(n))
+
+        numberOfFrames += 1
+
+        if numberOfFrames >= framesPerFFT:
+            print ('Frequency: {:7.2f} Hz   |   Note: {:>3s} {:+.2f}'.format(freq,getNoteName(n0), n-n0))
+
+
+liveDetection(lowestNote,highestNote,samplesPerFFT,samplingFrequency,sampleFrameSize,frequencyStep)
