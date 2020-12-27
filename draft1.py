@@ -27,7 +27,7 @@ highestNote = 84
 
 samplingFrequency = 22050
 sampleFrameSize = 2048
-framesPerFFT = 16
+framesPerFFT = 32
 
 #---------------DERIVED QUANTITIES---------------#
 
@@ -59,6 +59,12 @@ def numberToFrequency(n):
     return 2.0**((n-69)/12.0) * 440 
 
 
+def noteToFFT(n):
+
+    #Converting note to FFT
+
+    return numberToFrequency(n)/frequencyStep
+
 #---------------GET NOTE NAME FUNCTION---------------#
 
 def getNoteName(n):
@@ -67,18 +73,10 @@ def getNoteName(n):
     
     return noteNames[n % 12] + str(n/12 - 1)
 
-
-#---------------MAIN FUNCTION---------------#
-
-def noteToFFT(n):
-
-    #Converting note to FFT
-
-    return numberToFrequency(n)/frequencyStep
-
+#---------------MAIN FUNCTIONS---------------#
 
 #Function for live detection, stops whenever the user wants
-def liveDetection(lowestNote, highestNote, samplesPerFFT, samplingFrequency, sampleFrameSize, frequencyStep):
+def liveDetection(lowestNote, highestNote, samplesPerFFT, samplingFrequency, sampleFrameSize, frequencyStep,duration):
 
     # To get the min and max index in FFT of the notes
     minIndex = max(0,int(np.floor(noteToFFT(lowestNote-1))))
@@ -104,8 +102,7 @@ def liveDetection(lowestNote, highestNote, samplesPerFFT, samplingFrequency, sam
     print('Sampling Frequency:',samplingFrequency, "Hz")
     print('Max Resolution:', frequencyStep,"Hz\n")
 
-
-    while stream.is_active():
+    for i in range(0,int(samplingFrequency / sampleFrameSize * duration)):
 
         # Shifting the data down and the new data in
         temp[:-sampleFrameSize] = temp[sampleFrameSize:]
@@ -123,8 +120,77 @@ def liveDetection(lowestNote, highestNote, samplesPerFFT, samplingFrequency, sam
 
         numberOfFrames += 1
 
+        #Default note when no sound is played or heard by device
+        defaultNote = "A#2"
+
         if numberOfFrames >= framesPerFFT:
-            print ('Frequency: {:7.2f} Hz   |   Note: {:>3s} {:+.2f}'.format(freq,getNoteName(n0), n-n0))
+            if defaultNote not in getNoteName(n0):
+                print ('Frequency: {:7.2f} Hz   |   Note: {:>3s} {:+.2f}'.format(freq,getNoteName(n0), n-n0))
+
+    print("Finish Stream")
+    stream.stop_stream()
+    stream.close()
+
+def recordNotes(samplesPerFFT, samplingFrequency, sampleFrameSize, frequencyStep,duration):
+
+    chunk = 1024
+    
+    channels = 2
+    fs = 44100
+    length = 5
+    filename = "soundsample.wav"
+
+    # Initializing pyaudio
+    stream = pyaudio.PyAudio().open(format=pyaudio.paInt16,
+                                    channels=1,rate=samplingFrequency,
+                                    input=True,
+                                    frames_per_buffer=sampleFrameSize)
+
+    #Starting Stream
+    stream.start_stream()
+
+    #Hanning Window Function
+    window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
+    
+    print("----------Now Recording----------")
+
+    
+    for i in range (int(samplingFrequency / sampleFrameSize * duration)):
+        data = stream.read(sampleFrameSize)
+        
 
 
-liveDetection(lowestNote,highestNote,samplesPerFFT,samplingFrequency,sampleFrameSize,frequencyStep)
+
+#---------------MAIN PROGRAM---------------#
+
+def mainProgram():
+    print("---------------NOTE DETECTOR PROGRAM---------------")
+    print("1. Live Recording")
+    print("2. Record")
+    print("3. History")
+    print("4. Exit")
+    print("---------------------------------------------------")
+
+    selection = input("Choice: ")
+    
+
+    while True:
+
+        if selection == '1':
+            duration = int(input("Duration: "))
+            liveDetection(lowestNote,highestNote,samplesPerFFT,samplingFrequency,sampleFrameSize,frequencyStep,duration)
+            mainProgram()
+
+        elif selection == '2':
+            duration = input("Record Duration: ")
+            recordNotes()
+            mainProgram()
+        
+        elif selection == '4':
+            break
+        
+        else:
+            print("\nSelection does not exist!\n")
+            mainProgram()
+
+mainProgram()
