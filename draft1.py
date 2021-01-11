@@ -17,7 +17,7 @@ import numpy as np
 import pyaudio
 import wave
 import os
-#---------------INITIALIZING VALUES---------------#
+#---------------INITIALIZING VALUES---------------#Note Detector Program
 
 # Initializing values for the range of the note detection
 
@@ -85,7 +85,9 @@ def liveDetection(lowestNote, highestNote, samplesPerFFT, samplingFrequency, sam
 
     # Allocating space for FFT process
     temp = np.zeros(samplesPerFFT, dtype=np.float32)
-    numberOfFrames = 0
+
+    #Hanning Window Function
+    window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
 
     # Initializing pyaudio
     stream = pyaudio.PyAudio().open(format=pyaudio.paInt16,
@@ -96,10 +98,7 @@ def liveDetection(lowestNote, highestNote, samplesPerFFT, samplingFrequency, sam
     #Starting Stream
     stream.start_stream()
 
-
-    #Hanning Window Function
-    window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
-
+    numberOfFrames = 0
     print('\nSampling Frequency:',samplingFrequency, "Hz")
     print('Max Resolution:', frequencyStep,"Hz\n")
 
@@ -147,9 +146,6 @@ def recordNotes(samplesPerFFT, samplingFrequency, sampleFrameSize, frequencyStep
 
     #Starting Stream
     stream.start_stream()
-
-    #Hanning Window Function
-    window = 0.5 * (1 - np.cos(np.linspace(0,2*np.pi, samplesPerFFT, False)))
     
     print("----------Now Recording----------\n")
 
@@ -230,7 +226,7 @@ def analyzeFile(file,lowestNote, highestNote, samplesPerFFT, samplingFrequency, 
 
     #get duration of file
     duration = (fileread.getnframes() / fileread.getframerate())
-    print(duration)
+    
 
     print('Sampling Frequency:',samplingFrequency, "Hz")
     print('Max Resolution:', frequencyStep,"Hz\n")
